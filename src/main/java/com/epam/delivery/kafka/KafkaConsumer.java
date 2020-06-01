@@ -1,8 +1,10 @@
 package com.epam.delivery.kafka;
 
-import com.epam.delivery.service.DestinationService;
-import com.epam.delivery.dto.Check;
 import com.epam.delivery.dto.OrderDto;
+import com.epam.delivery.dto.ResultDto;
+import com.epam.delivery.dto.ResultDto.Check;
+import com.epam.delivery.dto.ResultDto.Service;
+import com.epam.delivery.service.DestinationService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
@@ -22,15 +24,18 @@ public class KafkaConsumer {
   @SneakyThrows
   @KafkaListener(
       topics = "${spring.kafka.consumer.topic}",
-      groupId = "${spring.kafka.consumer.group-id}",
+      clientIdPrefix = "delivery-request-client",
+      groupId = "delivery-request-group",
       containerFactory = "consumerFactory"
   )
-  public Check consume(ConsumerRecord<String, String> record, Acknowledgment acknowledgment) {
+  public ResultDto consume(ConsumerRecord<String, String> record, Acknowledgment acknowledgment) {
     final OrderDto orderDto = objectMapper.readValue(record.value(), OrderDto.class);
     final boolean enough = destinationService.closeEnough(orderDto);
-    Check check = enough ? Check.SUCCESS : Check.FAILED;
-    kafkaProducer.send(check);
+    ResultDto resultDto = enough
+        ? new ResultDto(orderDto, Check.SUCCESS, Service.DELIVERY)
+        : new ResultDto(orderDto, Check.FAIL, Service.DELIVERY);
+    kafkaProducer.send(resultDto);
     acknowledgment.acknowledge();
-    return check;
+    return resultDto;
   }
 }

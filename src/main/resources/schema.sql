@@ -2,8 +2,8 @@ DROP TABLE IF EXISTS destinations;
 
 CREATE TABLE destinations
 (
-    id BIGSERIAL,
+    id       BIGSERIAL,
     location VARCHAR(255),
-    distance int,
+    distance INT,
     CONSTRAINT PK_destinations PRIMARY KEY (id)
 );
